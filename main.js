@@ -240,7 +240,7 @@ function main(){
 	];
 	let point_width = 5;
 	// pushing uniforms into shaders
-	gl.uniformMatrix4fv(MVPUniformLoc, false, view);
+	// gl.uniformMatrix4fv(MVPUniformLoc, false, view);
 	gl.uniform1f(pointSizeUniformLoc, point_width);
 
 
@@ -294,7 +294,12 @@ function main(){
 
 	// ball kinematics
 	let ball_pos = [250, 250];
-	let ball_speed = [.1,0];
+	let ball_speed = [.2,0];
+	ball_speed[1] = (.2*Math.random()) - .1;
+	const speed_increase = 0.06;
+
+	//left paddle kinematics
+	let l_paddle_y = 250;
 
 	// start animation
 	requestAnimationFrame(drawFrame);
@@ -314,14 +319,34 @@ function main(){
 		// clamp position
 		if(r_paddle_y > 455) r_paddle_y = 455;
 		if(r_paddle_y <  45) r_paddle_y =  45;
+		l_paddle_y = r_paddle_y;
 
 		// integrate ball position
 		ball_pos[0] += ball_speed[0] * delta;
 		ball_pos[1] += ball_speed[1] * delta;
 
 		// collision detection
-		// is ball in horizontal distance to paddle?
-		if(460 < ball_pos[0] && ball_pos[0] < 471)
+		//out of screen
+		if(ball_pos[0] < 0 || 500 < ball_pos[0])
+		{
+			ball_pos   = [250, 250];
+			ball_speed = [0.2, 0];
+			ball_speed[1] = (.2*Math.random()) - .1;
+		}
+		// down screen collision
+		if(ball_pos[1] < 10)
+		{
+			ball_pos[1] = 10;
+			ball_speed[1] = -ball_speed[1];
+		}
+		// up screen collision
+		if(490 < ball_pos[1])
+		{
+			ball_pos[1] = 490;
+			ball_speed[1] = -ball_speed[1];
+		}
+		// right paddle collision
+		if(460 < ball_pos[0] && ball_pos[0] < 471) // x range
 		{
 			// vertical distance from paddle center
 			let dist = ball_pos[1] - r_paddle_y;
@@ -332,13 +357,34 @@ function main(){
 				// collision!
 				ball_speed[0] = -ball_speed[0];
 				// push ball outside of the paddle
-				ball_pos[0] = 459
+				ball_pos[0] = 460
+				// add momentum
+				ball_speed[1] += dist/100.;
+				ball_speed[0] -= speed_increase;
+			}
+		}
+		// left paddle collision
+		if(29 < ball_pos[0] && ball_pos[0] < 40) // x range
+		{
+			// vertical distance from paddle center
+			let dist = ball_pos[1] - l_paddle_y;
+
+			//is ball in vertical distance from paddle?
+			if(-45 < dist && dist < 45)
+			{
+				// collision!
+				ball_speed[0] = -ball_speed[0];
+				// push ball outside of the paddle
+				ball_pos[0] = 40
+				// add momentum
+				ball_speed[1] += dist/100.;
+				ball_speed[0] += speed_increase;
 			}
 		}
 
 		//drawing
 		drawRectangle(WebGL, mat4Transform([470,r_paddle_y], [1,1], 0), [10, 90], [.2,.2,.2]); // right paddle
-		drawRectangle(WebGL, mat4Transform([ 30,       250], [1,1], 0), [10, 90], [.2,.2,.2]); // left  paddle
+		drawRectangle(WebGL, mat4Transform([ 30,l_paddle_y], [1,1], 0), [10, 90], [.2,.2,.2]); // left  paddle
 		drawCircle   (WebGL, mat4Transform( ball_pos       , [1,1], 0), 25, 10,   [.2,.2,.2]); // ball
 
 		requestAnimationFrame(drawFrame);
